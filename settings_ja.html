@@ -1,0 +1,202 @@
+<div class="live-avatar-settings">
+  <div class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header">
+      <b>Live Avatar Generator</b>
+      <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
+    </div>
+    <div class="inline-drawer-content">
+
+      <label class="checkbox_label">
+        <input id="la_enabled" type="checkbox">
+        有効化
+      </label>
+
+      <hr>
+      <h4>ステージ1: 状況の圧縮・更新</h4>
+      <small>
+        メッセージが更新されるたびに、「前回保存した状態」と「直近の会話数件」をLLMに渡し、
+        服装・体型・ポーズ・状況をまとめた圧縮コンテキストを更新します。
+        更新結果はキャラクターごと・チャットごとに保存され、中断した会話でも維持されます。
+      </small>
+
+      <label>直近参照件数(この件数のメッセージを前回の状態とあわせて渡します)</label>
+      <input id="la_compress_window" type="number" class="text_pole" min="1" step="1">
+      <small>
+        1件だけだと変化が激しくなりすぎるため、数件(例: 5件)まとめて渡すことを推奨します。
+      </small>
+
+      <label>圧縮ステージのテキスト構成(テンプレート)</label>
+      <textarea id="la_compress_prompt_template" rows="3" class="text_pole"
+        placeholder="{{instruction}}&#10;&#10;{{character_card}}&#10;&#10;[Previous state]&#10;{{previous_context}}&#10;&#10;[Recent lines]&#10;{{recent_log}}"></textarea>
+      <small>
+        使用可能トークン: <code>{{instruction}}</code> <code>{{character_card}}</code>
+        <code>{{previous_context}}</code> <code>{{recent_log}}</code> <code>{{compressed_context}}</code>
+        <code>{{speaker}}</code> <code>{{char_name}}</code> <code>{{char_description}}</code>
+        <code>{{char_personality}}</code> <code>{{char_scenario}}</code> <code>{{char_mes_example}}</code><br>
+        <code>{{compressed_context}}</code> はこのステージでは未確定のため空欄になります(ステージ2でのみ値が入ります)。
+      </small>
+
+      <label>圧縮ステージの指示文(instruction)</label>
+      <textarea id="la_compress_instruction" rows="4" class="text_pole"
+        placeholder="空欄の場合は既定の指示文を使用します(前回の状態＋直近の会話から、変化した部分だけ更新した状態説明を1段落で出力させる指示)。"></textarea>
+      <small>空欄なら既定の指示文が使われます。SillyTavernの<code>{{char}}</code> <code>{{user}}</code>マクロも使用可能です。</small>
+
+      <label>圧縮結果の最小文字数(0で無効)</label>
+      <input id="la_compress_min_length" type="number" class="text_pole" min="0" step="1">
+      <small>
+        ステージ1の応答がこの文字数未満だった場合、極端に短い(壊れた)応答とみなして破棄し、
+        前回保存されていた状態をそのまま維持します(保存内容は上書きされません)。
+        まだ一度も状態が保存されていない(初回)場合はこのチェックの対象外です。
+      </small>
+
+      <hr>
+      <h4>ステージ2: 画像生成プロンプトの作成</h4>
+      <small>
+        ステージ1で更新された圧縮コンテキストをもとに、画像生成用のタグ(プロンプト)をLLMに作らせます。
+      </small>
+
+      <label>プロンプトステージのテキスト構成(テンプレート)</label>
+      <textarea id="la_prompt_template" rows="3" class="text_pole"
+        placeholder="{{instruction}}&#10;&#10;{{character_card}}&#10;&#10;[Current state]&#10;{{compressed_context}}"></textarea>
+      <small>
+        使用可能トークン: <code>{{instruction}}</code> <code>{{character_card}}</code>
+        <code>{{compressed_context}}</code> <code>{{previous_context}}</code> <code>{{recent_log}}</code>
+        <code>{{speaker}}</code> <code>{{char_name}}</code> <code>{{char_description}}</code>
+        <code>{{char_personality}}</code> <code>{{char_scenario}}</code> <code>{{char_mes_example}}</code><br>
+        <code>{{character_card}}</code> の代わりに <code>{{char_description}}</code> 等を個別に並べても構いません。
+        <code>{{previous_context}}</code> <code>{{recent_log}}</code> はこのステージでは更新前の状態/直近ログとして値が入ります。
+      </small>
+
+      <label>プロンプトステージの指示文(instruction)</label>
+      <textarea id="la_custom_instruction" rows="4" class="text_pole"
+        placeholder="空欄の場合は既定の指示文を使用します(英語のDanbooruタグ抽出指示)。{{speaker}} や {{char_name}} 等のトークンも使用可能です。"></textarea>
+      <small>空欄なら既定の指示文が使われます。SillyTavernの<code>{{char}}</code> <code>{{user}}</code>マクロも使用可能です。</small>
+
+      <label>アバターパネルの位置</label>
+      <button id="la_reset_panel_pos" class="menu_button">位置をリセット(右下に戻す)</button>
+
+      <hr>
+      <h4>生成設定ソース</h4>
+      <select id="la_mode" class="text_pole">
+        <option value="standard">標準の画像生成設定を流用(/imagine)</option>
+        <option value="custom">このアバター専用の設定(自作ワークフローJSON)</option>
+      </select>
+
+      <!-- standard mode -->
+      <div id="la_standard_block">
+        <label>プロンプト接頭辞(任意)</label>
+        <textarea id="la_standard_prefix" rows="2" class="text_pole" placeholder="例: masterpiece, best quality, "></textarea>
+        <small>
+          ここに書いた文字列 + LLMが抽出したタグ を <code>/imagine</code> に渡します。
+          ComfyUI URL・ワークフロー・モデル・サンプラー等は「Image Generation」パネルの設定がそのまま使われます。
+        </small>
+      </div>
+
+      <!-- custom mode -->
+      <div id="la_custom_block">
+        <label>ComfyUI URL</label>
+        <div class="la-row">
+          <input id="la_comfy_url" type="text" class="text_pole" placeholder="http://127.0.0.1:8188">
+          <button id="la_refresh_comfy" class="menu_button" title="サンプラー/モデル一覧を取得">🔄 取得</button>
+        </div>
+
+        <label>ワークフローJSON(API形式、%prompt% 等のプレースホルダ使用可)</label>
+        <textarea id="la_workflow_json" rows="8" class="text_pole" placeholder="ComfyUIの「Save (API Format)」で出力したJSONを貼り付け"></textarea>
+        <input id="la_workflow_file" type="file" accept="application/json">
+
+        <label>解像度</label>
+        <select id="la_resolution_preset" class="text_pole">
+          <option value="1024x1024">1024 x 1024(正方形)</option>
+          <option value="896x1152">896 x 1152(縦長)</option>
+          <option value="1152x896">1152 x 896(横長)</option>
+          <option value="832x1216">832 x 1216(縦長 強)</option>
+          <option value="1216x832">1216 x 832(横長 強)</option>
+          <option value="custom">カスタム</option>
+        </select>
+        <div id="la_custom_res_block" class="la-row">
+          <input id="la_width" type="number" class="text_pole" style="width:90px" placeholder="幅">
+          <input id="la_height" type="number" class="text_pole" style="width:90px" placeholder="高さ">
+        </div>
+
+        <label>チェックポイントモデル</label>
+        <select id="la_default_model" class="text_pole"></select>
+
+        <label>VAE</label>
+        <select id="la_default_vae" class="text_pole"></select>
+
+        <label>Sampler</label>
+        <select id="la_sampler" class="text_pole"></select>
+
+        <label>Scheduler</label>
+        <select id="la_scheduler" class="text_pole"></select>
+
+        <div class="la-row">
+          <div>
+            <label>Steps</label>
+            <input id="la_steps" type="number" class="text_pole" style="width:80px">
+          </div>
+          <div>
+            <label>CFG Scale</label>
+            <input id="la_scale" type="number" class="text_pole" style="width:80px" step="0.1">
+          </div>
+          <div>
+            <label>Denoise</label>
+            <input id="la_denoise" type="number" class="text_pole" style="width:80px" step="0.05" min="0" max="1">
+          </div>
+          <div>
+            <label>CLIP Skip</label>
+            <input id="la_clip_skip" type="number" class="text_pole" style="width:80px" min="1" title="現在のワークフローには接続ノードがないため未使用">
+          </div>
+        </div>
+        <small>※ CLIP Skip はこのワークフローには対応ノードが無いため、現状は保存のみで生成には反映されません。</small>
+
+        <label>Seed(-1でランダム)</label>
+        <input id="la_seed" type="number" class="text_pole" style="width:120px">
+
+        <label>ネガティブプロンプト(共通)</label>
+        <textarea id="la_negative_prompt" rows="2" class="text_pole"></textarea>
+      </div>
+
+      <hr>
+      <h4>キャラクター固有タグ</h4>
+      <small>
+        チャットに登場した話者(グループメンバー含む)から選んで、そのキャラクター専用のタグを設定できます。
+        入力内容は自動的に記録され、選択を切り替えると該当キャラクターの内容が読み込まれます。
+        ここで入力した内容は生成モード(標準/カスタム)どちらでもプロンプトに追加されます。
+      </small>
+      <div class="la-row">
+        <select id="la_char_select" class="text_pole" style="flex:1"></select>
+        <button id="la_refresh_speakers" class="menu_button" title="チャット参加キャラクターを再取得">🔄</button>
+      </div>
+      <textarea id="la_current_char_tags" rows="2" class="text_pole" placeholder="例: 1girl, silver hair, red eyes"></textarea>
+
+      <h4>キャラクター別オーバーライド(一覧・手動編集用)</h4>
+      <small>チャット上の話者名(name)と一致させてください。「固有タグ」欄は上の欄と同じデータです。空欄の項目は共通デフォルトが使われます。</small>
+      <div id="la_char_overrides_list"></div>
+      <button id="la_add_char_override" class="menu_button">+ キャラクター追加</button>
+
+      <hr>
+      <h4>キャッシュ</h4>
+      <label class="checkbox_label">
+        <input id="la_cache_enabled" type="checkbox">
+        同じ感情タグの組み合わせを再利用する(OFFで常に最新状態を再生成)
+      </label>
+
+      <h4>スロットリング</h4>
+      <label>最短生成間隔(ms、0で無効)</label>
+      <input id="la_throttle_ms" type="number" class="text_pole" min="0" step="500">
+
+      <label>本文差分しきい値(文字数、0で無効)</label>
+      <input id="la_throttle_chardiff" type="number" class="text_pole" min="0" step="10">
+
+      <h4>中断制御</h4>
+      <label class="checkbox_label">
+        <input id="la_abort_enabled" type="checkbox">
+        古い生成リクエストを新規メッセージで中断する
+      </label>
+      <label>タイムアウト(ms)</label>
+      <input id="la_abort_timeout" type="number" class="text_pole" min="1000" step="1000">
+
+    </div>
+  </div>
+</div>

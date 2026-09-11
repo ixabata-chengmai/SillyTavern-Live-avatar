@@ -1,0 +1,214 @@
+.live-avatar-settings label {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.live-avatar-settings small {
+    display: block;
+    opacity: 0.7;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.live-avatar-settings textarea {
+    width: 100%;
+    height: 150px;
+    resize: vertical;
+}
+
+.live-avatar-settings .la-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.live-avatar-settings .la-char-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.live-avatar-settings .la-char-row .char-name {
+    width: 110px;
+    flex-shrink: 0;
+}
+
+.live-avatar-settings .la-char-row .char-model {
+    width: 180px;
+    flex-shrink: 0;
+}
+
+.live-avatar-settings .la-char-row .char-prefix {
+    flex: 1;
+}
+
+.live-avatar-settings .la-char-row .char-tags {
+    flex: 1;
+}
+.live-avatar-settings .menu_button{
+    width:auto;
+}
+
+/* ---- floating avatar panel ---- */
+
+#live-avatar-panel {
+    position: fixed;
+    width: 220px;
+    height: 300px;
+    min-width: 140px;
+    min-height: 180px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    background: rgba(20, 20, 20, 0.55);
+    border-radius: 10px;
+    padding: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+#live-avatar-panel.dragging,
+#live-avatar-panel.resizing {
+    transition: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+#live-avatar-panel.collapsed {
+    transform: translateY(calc(100% - 30px));
+    opacity: 0.6;
+}
+
+#live-avatar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: grab;
+    margin-bottom: 4px;
+    user-select: none;
+    touch-action: none;
+    flex: 0 0 auto;
+}
+
+#live-avatar-panel.dragging #live-avatar-header {
+    cursor: grabbing;
+}
+
+#live-avatar-name {
+    color: #fff;
+    font-size: 0.85em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    min-height: 1.2em;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Fills all remaining space in the panel; the panel's own size (set via
+   drag-resize) is what determines how big the avatar appears. */
+#live-avatar-imgwrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#live-avatar-img,
+#live-avatar-img-fade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* "contain" shows the whole image at the largest size that fits the
+       window without cropping, letterboxing instead of covering. */
+    object-fit: contain;
+    transition: opacity 0.3s ease;
+}
+
+#live-avatar-img-fade {
+    opacity: 0;
+}
+
+/* No image generated yet, or the last load failed: hide the (broken) <img>
+   tags entirely and show a text placeholder instead of the browser's
+   default "missing image" icon. */
+#live-avatar-imgwrap.no-image #live-avatar-img,
+#live-avatar-imgwrap.no-image #live-avatar-img-fade {
+    display: none;
+}
+
+#live-avatar-placeholder {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+#live-avatar-imgwrap.no-image #live-avatar-placeholder {
+    display: flex;
+}
+
+#live-avatar-spinner {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    font-size: 11px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+#live-avatar-spinner.visible {
+    opacity: 1;
+}
+
+#live-avatar-close {
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.7;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+#live-avatar-close:hover {
+    opacity: 1;
+}
+
+#live-avatar-resize-handle {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    touch-action: none;
+    background:
+        linear-gradient(135deg, transparent 0 45%, rgba(255, 255, 255, 0.6) 45% 55%, transparent 55% 100%),
+        linear-gradient(135deg, transparent 0 65%, rgba(255, 255, 255, 0.6) 65% 75%, transparent 75% 100%);
+    opacity: 0.6;
+}
+
+#live-avatar-resize-handle:hover {
+    opacity: 1;
+}
+

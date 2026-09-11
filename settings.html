@@ -1,0 +1,213 @@
+<div class="live-avatar-settings">
+  <div class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header">
+      <b>Live Avatar Generator</b>
+      <div class="inline-drawer-icon fa-solid fa-circle-chevron-down"></div>
+    </div>
+    <div class="inline-drawer-content">
+
+      <label class="checkbox_label">
+        <input id="la_enabled" type="checkbox">
+        Enabled
+      </label>
+
+      <hr>
+      <h4>Stage 1: Compress &amp; Update State</h4>
+      <small>
+        Every time the chat updates, the previously saved state and the most recent few lines
+        of conversation are sent to the LLM to produce an updated "compressed context"
+        summarizing clothing, body, pose, and situation.
+        The result is stored per character and per chat, so it survives an interrupted
+        conversation.
+      </small>
+
+      <label>Recent message window (how many recent messages to send along with the previous state)</label>
+      <input id="la_compress_window" type="number" class="text_pole" min="1" step="1">
+      <small>
+        A window of 1 message tends to cause overly abrupt changes; a small window
+        (e.g. 5 messages) is recommended.
+      </small>
+
+      <label>Stage 1 prompt layout (template)</label>
+      <textarea id="la_compress_prompt_template" rows="3" class="text_pole"
+        placeholder="{{instruction}}&#10;&#10;{{character_card}}&#10;&#10;[Previous state]&#10;{{previous_context}}&#10;&#10;[Recent lines]&#10;{{recent_log}}"></textarea>
+      <small>
+        Available tokens: <code>{{instruction}}</code> <code>{{character_card}}</code>
+        <code>{{previous_context}}</code> <code>{{recent_log}}</code> <code>{{compressed_context}}</code>
+        <code>{{speaker}}</code> <code>{{char_name}}</code> <code>{{char_description}}</code>
+        <code>{{char_personality}}</code> <code>{{char_scenario}}</code> <code>{{char_mes_example}}</code><br>
+        <code>{{compressed_context}}</code> is not yet determined at this stage, so it is blank here
+        (it only has a value at Stage 2).
+      </small>
+
+      <label>Stage 1 instruction</label>
+      <textarea id="la_compress_instruction" rows="4" class="text_pole"
+        placeholder="Leave blank to use the built-in default instruction (update only what changed, based on the previous state and the recent conversation, as one paragraph)."></textarea>
+      <small>Leave blank to use the built-in default instruction. SillyTavern's <code>{{char}}</code> / <code>{{user}}</code> macros can also be used.</small>
+
+      <label>Minimum length of the compressed result (0 disables the check)</label>
+      <input id="la_compress_min_length" type="number" class="text_pole" min="0" step="1">
+      <small>
+        If Stage 1's response is shorter than this many characters, it is treated as a
+        degenerate/broken response and discarded — the previously saved state is kept
+        as-is (nothing gets overwritten). This check is skipped the first time a state is
+        recorded, since there is nothing to fall back to yet.
+      </small>
+
+      <hr>
+      <h4>Stage 2: Build the Image Generation Prompt</h4>
+      <small>
+        Based on the compressed context updated in Stage 1, the LLM is asked to produce
+        tags (a prompt) for image generation.
+      </small>
+
+      <label>Stage 2 prompt layout (template)</label>
+      <textarea id="la_prompt_template" rows="3" class="text_pole"
+        placeholder="{{instruction}}&#10;&#10;{{character_card}}&#10;&#10;[Current state]&#10;{{compressed_context}}"></textarea>
+      <small>
+        Available tokens: <code>{{instruction}}</code> <code>{{character_card}}</code>
+        <code>{{compressed_context}}</code> <code>{{previous_context}}</code> <code>{{recent_log}}</code>
+        <code>{{speaker}}</code> <code>{{char_name}}</code> <code>{{char_description}}</code>
+        <code>{{char_personality}}</code> <code>{{char_scenario}}</code> <code>{{char_mes_example}}</code><br>
+        Instead of <code>{{character_card}}</code>, you can also lay out
+        <code>{{char_description}}</code> etc. individually in any order.
+        <code>{{previous_context}}</code> / <code>{{recent_log}}</code> are also available here
+        and hold the pre-update state / recent log respectively.
+      </small>
+
+      <label>Stage 2 instruction</label>
+      <textarea id="la_custom_instruction" rows="4" class="text_pole"
+        placeholder="Leave blank to use the built-in default instruction (Danbooru-style tag extraction). {{speaker}} and {{char_name}} etc. can also be used here."></textarea>
+      <small>Leave blank to use the built-in default instruction. SillyTavern's <code>{{char}}</code> / <code>{{user}}</code> macros can also be used.</small>
+
+      <label>Avatar panel position</label>
+      <button id="la_reset_panel_pos" class="menu_button">Reset position (back to bottom-right)</button>
+
+      <hr>
+      <h4>Generation Settings Source</h4>
+      <select id="la_mode" class="text_pole">
+        <option value="standard">Reuse the standard Image Generation settings (/imagine)</option>
+        <option value="custom">Dedicated settings for this avatar (custom workflow JSON)</option>
+      </select>
+
+      <!-- standard mode -->
+      <div id="la_standard_block">
+        <label>Prompt prefix (optional)</label>
+        <textarea id="la_standard_prefix" rows="2" class="text_pole" placeholder="e.g. masterpiece, best quality, "></textarea>
+        <small>
+          This text, plus the tags extracted by the LLM, are passed to <code>/imagine</code>.
+          The ComfyUI URL, workflow, model, sampler, etc. are taken directly from the
+          standard "Image Generation" panel's settings.
+        </small>
+      </div>
+
+      <!-- custom mode -->
+      <div id="la_custom_block">
+        <label>ComfyUI URL</label>
+        <div class="la-row">
+          <input id="la_comfy_url" type="text" class="text_pole" placeholder="http://127.0.0.1:8188">
+          <button id="la_refresh_comfy" class="menu_button" title="Fetch the list of samplers/models">🔄 Fetch</button>
+        </div>
+
+        <label>Workflow JSON (API format; placeholders like %prompt% are supported)</label>
+        <textarea id="la_workflow_json" rows="8" class="text_pole" placeholder="Paste the JSON exported from ComfyUI's 'Save (API Format)'"></textarea>
+        <input id="la_workflow_file" type="file" accept="application/json">
+
+        <label>Resolution</label>
+        <select id="la_resolution_preset" class="text_pole">
+          <option value="1024x1024">1024 x 1024 (square)</option>
+          <option value="896x1152">896 x 1152 (portrait)</option>
+          <option value="1152x896">1152 x 896 (landscape)</option>
+          <option value="832x1216">832 x 1216 (tall portrait)</option>
+          <option value="1216x832">1216 x 832 (wide landscape)</option>
+          <option value="custom">Custom</option>
+        </select>
+        <div id="la_custom_res_block" class="la-row">
+          <input id="la_width" type="number" class="text_pole" style="width:90px" placeholder="Width">
+          <input id="la_height" type="number" class="text_pole" style="width:90px" placeholder="Height">
+        </div>
+
+        <label>Checkpoint model</label>
+        <select id="la_default_model" class="text_pole"></select>
+
+        <label>VAE</label>
+        <select id="la_default_vae" class="text_pole"></select>
+
+        <label>Sampler</label>
+        <select id="la_sampler" class="text_pole"></select>
+
+        <label>Scheduler</label>
+        <select id="la_scheduler" class="text_pole"></select>
+
+        <div class="la-row">
+          <div>
+            <label>Steps</label>
+            <input id="la_steps" type="number" class="text_pole" style="width:80px">
+          </div>
+          <div>
+            <label>CFG Scale</label>
+            <input id="la_scale" type="number" class="text_pole" style="width:80px" step="0.1">
+          </div>
+          <div>
+            <label>Denoise</label>
+            <input id="la_denoise" type="number" class="text_pole" style="width:80px" step="0.05" min="0" max="1">
+          </div>
+          <div>
+            <label>CLIP Skip</label>
+            <input id="la_clip_skip" type="number" class="text_pole" style="width:80px" min="1" title="Not currently wired into the workflow (no connected node), saved only">
+          </div>
+        </div>
+        <small>* CLIP Skip has no corresponding connected node in this workflow, so the value is saved but currently has no effect on generation.</small>
+
+        <label>Seed (-1 for random)</label>
+        <input id="la_seed" type="number" class="text_pole" style="width:120px">
+
+        <label>Negative prompt (shared)</label>
+        <textarea id="la_negative_prompt" rows="2" class="text_pole"></textarea>
+      </div>
+
+      <hr>
+      <h4>Character-Specific Tags</h4>
+      <small>
+        Pick a speaker who has appeared in the chat (including group members) and set
+        tags specific to that character. Entries are recorded automatically, and
+        switching the selection loads that character's saved content.
+        Whatever is entered here is appended to the prompt regardless of generation
+        mode (standard or custom).
+      </small>
+      <div class="la-row">
+        <select id="la_char_select" class="text_pole" style="flex:1"></select>
+        <button id="la_refresh_speakers" class="menu_button" title="Re-scan characters who have spoken in this chat">🔄</button>
+      </div>
+      <textarea id="la_current_char_tags" rows="2" class="text_pole" placeholder="e.g. 1girl, silver hair, red eyes"></textarea>
+
+      <h4>Per-Character Overrides (list / manual editing)</h4>
+      <small>The name must match the speaker's name (name) in chat. The "custom tags" field is the same data as the field above. Blank fields fall back to the shared defaults.</small>
+      <div id="la_char_overrides_list"></div>
+      <button id="la_add_char_override" class="menu_button">+ Add character</button>
+
+      <hr>
+      <h4>Cache</h4>
+      <label class="checkbox_label">
+        <input id="la_cache_enabled" type="checkbox">
+        Reuse images for the same combination of tags (turn off to always regenerate)
+      </label>
+
+      <h4>Throttling</h4>
+      <label>Minimum generation interval (ms, 0 disables)</label>
+      <input id="la_throttle_ms" type="number" class="text_pole" min="0" step="500">
+
+      <label>Message-length-diff threshold (characters, 0 disables)</label>
+      <input id="la_throttle_chardiff" type="number" class="text_pole" min="0" step="10">
+
+      <h4>Abort Control</h4>
+      <label class="checkbox_label">
+        <input id="la_abort_enabled" type="checkbox">
+        Abort an in-flight generation request when a new message arrives
+      </label>
+      <label>Timeout (ms)</label>
+      <input id="la_abort_timeout" type="number" class="text_pole" min="1000" step="1000">
+
+    </div>
+  </div>
+</div>

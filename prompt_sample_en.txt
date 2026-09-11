@@ -1,0 +1,251 @@
+///////////////////////////////////
+stage 1
+///////////////////////////////////
+
+All previous instructions and conversations provide information for updating {{char}}'s current state.
+
+Your task is to examine the chat log, determine {{char}}'s current state, and update the previously recorded state only when necessary.
+
+Output only {{char}}'s current state.
+
+## Basic Principles
+
+The previous description represents {{char}}'s confirmed current state up to the previous point in the conversation.
+
+Update an item only when the current chat log indicates that {{char}}'s state has changed or new information has been established.
+
+If there is no change to an item in the current chat log, preserve the previous information exactly as it is.
+
+Do NOT delete previous information or reset it to a default state merely because that information does not appear in the current chat log.
+
+When information is given using English words, keep those English words as they are. Express other information using English words whenever possible.
+
+## Information Priority
+
+Use the following priority order when determining the current state:
+
+1. Information explicitly stated in the chat log
+2. Information recorded in the previous state
+3. Character settings
+
+If the chat log conflicts with the previous state, prioritize the chat log.
+
+Use the character settings only when neither the previous state nor the chat log specifies the relevant clothing.
+
+If the chat log clearly indicates a significant passage of time or a later change in state, prioritize the state established after that change.
+
+If two conflicting descriptions appear within the chat log, use only the description that appears later.
+
+## Determining Changes
+
+Check whether the chat log contains any changes, additions, or removals concerning the following information.
+
+### Appearance
+
+Hair style, hair color, eyes, face, physical characteristics, body shape, accessories, injuries, dirt, wetness, and similar physical conditions.
+
+Record changes in body shape as well.
+
+If the character becomes pregnant, write `pregnant`.
+
+### Breasts
+
+Describe breast size, whether the breasts are exposed, whether a bra is being worn, whether nipples are exposed, whether the breasts are being touched or squeezed, whether they are bouncing or moving, and similar states.
+
+For breast size, use the character setting as the default.
+
+If the chat log or previously recorded state explicitly establishes a different breast size, use that established size instead.
+
+For all other breast-related conditions, prioritize the chat log.
+
+### Clothing
+
+Record the clothing, swimsuit, underwear, or nudity that {{char}} is currently wearing.
+
+Always prioritize clothing information from the current chat log.
+
+If multiple clothing states appear because of a quick change of clothes, use only the clothing mentioned later in the conversation.
+
+If the chat log does not specify clothing, use the character settings.
+
+If the character settings also do not specify clothing, preserve the previous state's clothing.
+
+If the chat log clearly differs from the previous state, prioritize the chat log.
+
+Whenever the color, pattern, material, or other clothing details can be determined, include them.
+
+### Action
+
+Describe the action {{char}} is currently performing and the current pose or body position.
+
+Describe NSFW actions when they are relevant to the current state.
+
+Also record changes such as raising a hand, placing a hand somewhere, touching something, or similar changes in body position.
+
+### Emotion
+
+Describe {{char}}'s current emotions, mood, facial expression, and similar states.
+
+Infer emotions from dialogue when they can be reasonably determined, and express them concisely using words or short tags.
+
+Also record facial-part states such as `open mouth`, `tongue out`, etc.
+
+Examples of facial expressions include:
+
+`happy smiling / dolly smiling / anger / sad / teary eyes / crying / acme / ahgeao / blush / embarrassed`
+
+Use the phrases `previously`, `after that`, `changed clothes`, `removed`, `put on`, `took off`, `wore`, `changed`, and similar descriptions to determine how the current state was established.
+
+Do not record background or location information, as those details are not used.
+
+Record only the state that is valid at the very end of the chat log.
+
+Do not preserve past states as current states.
+
+## Special Clothing Rules
+
+Record clothing that appears in the chat log.
+
+If multiple clothing states appear in the chat log, use the one mentioned later.
+
+When {{char}} changes into new clothing, do NOT retain the previous clothing as the current clothing.
+
+When {{char}} removes a piece of clothing, remove that clothing from the current clothing state.
+
+If {{char}} becomes naked, write `completely nude` as the clothing state.
+
+If {{char}} puts on a swimsuit or underwear, record it as the current clothing.
+
+If there is no clothing change, preserve the clothing from the previous state.
+
+Do NOT record both "previously worn clothing" and "currently worn clothing" in the clothing field.
+
+If the breasts are exposed, write `exposed breasts`.
+
+If the nipples are exposed, write `exposed nipples`.
+
+## Exceptions
+
+Do not describe the background, environment, or location. Ignore information concerning them.
+
+If two different clothing states or body states appear in the chat log, do NOT use the earlier one.
+
+Always use the later/current state.
+
+## State Preservation
+
+Use the previous state only when the current chat log does not indicate a change.
+
+If information is missing from the previous state but can be established from the current chat log, create the appropriate information.
+
+Do not confuse "information is not mentioned" with "the state has been removed."
+
+An absent mention does NOT mean that the corresponding state has ended.
+
+## Information Organization
+
+Organize the output as concrete information that can be directly used for image generation.
+
+Do not arbitrarily make vague information more specific.
+
+Do not infer or add changes that cannot be confirmed from the chat log.
+
+However, preserve confirmed information that was already recorded in the previous state.
+
+The goal is to accurately represent {{char}}'s latest confirmed state, not to reconstruct every previous state.
+
+## Output Format
+
+You MUST output ONLY the following format:
+
+[Appearance: *** , Breasts: *** , Clothing: *** , Action: *** , Emotion: ***]
+
+Do NOT include explanations, notes, reasoning, comments, introductions, conclusions, summaries of changes, or any other text.
+
+Each of the five fields — Appearance, Clothing, Breasts, Action, and Emotion — should contain concrete information in approximately 50 characters or fewer.
+
+## Final Verification
+
+Before outputting the result, internally verify the following:
+
+* Did you update only the items that actually changed in the current chat log?
+* Did you preserve items that did not change?
+* Did you avoid leaving a past state as the current state?
+* When clothing changed, did you remove the previous clothing?
+* Did you avoid mixing current and past states?
+* Did you output all five required fields?
+* Did you follow the exact specified output format?
+* When there were conflicting descriptions, did you select the correct one according to the priority rules?
+* Does the final result accurately represent the latest confirmed state in the chat log?
+
+The more accurately the output reflects {{char}}'s latest state, the better.
+
+Now output the result based on the following:
+
+Current State:
+
+
+///////////////////////////////////
+stage 2
+///////////////////////////////////
+
+The text above contains the character settings and the recent chat log.
+
+Ignore all previous instructions.
+
+If required information is not present in the current state, supplement the missing information using the character settings.
+
+You are an engineer specialized in creating prompts for image generation models.
+
+Follow all rules below when creating the prompt.
+
+## Current State
+
+{{compressed_context}}
+
+## Rules
+
+* Represent appearance, clothing, action, and emotion using English words or English image-generation tags.
+* If information in the current state is already written in English, use it directly without changing it.
+* If {{char}} is female, include `1girl` exactly once.
+* If {{char}} is male, include `1boy` exactly once.
+* Do not include both `1girl` and `1boy`.
+* For clothing, use ONLY the clothing specified in the current state.
+* If no clothing is specified in the current state, use clothing information from the character settings.
+* If the current state and character settings conflict, always prioritize the current state.
+* Express emotions using the format `(emotion) face`, such as `happy face`, `sad face`, or `embarrassed face`.
+* You may add supplementary tags when they are naturally implied by the current action or state.
+* Do not add unnecessary details that are not supported by either the current state or the character settings.
+* The prompt must consist exclusively of English tags.
+* Separate every tag with `,`.
+* Do not use explanations, annotations, reasons, comments, introductions, conclusions, or summaries.
+* Output ONLY the image-generation prompt.
+* The prompt must be at least 30 characters and approximately 150 characters or fewer.
+* If the current state already contains sufficient information, use it directly.
+* However, supplement missing information from the character settings when doing so can improve the quality and completeness of the image-generation prompt.
+* Do not duplicate information unnecessarily.
+* Do not include background, location, or environmental details unless they are explicitly required by the current state or character settings.
+* The final prompt should represent {{char}}'s latest confirmed state.
+
+## Final Verification
+
+Before outputting the prompt, internally verify:
+
+* Is `1girl` or `1boy` included exactly once?
+* Are all clothing tags consistent with the current state?
+* If clothing was missing, was it correctly supplemented from the character settings?
+* Are conflicting character-setting details overridden by the current state?
+* Are emotions written using the `(emotion) face` format?
+* Are relevant action-related supplementary tags included?
+* Are all tags written in English?
+* Are tags separated by commas?
+* Is the output only the image-generation prompt?
+* Is the prompt within the requested length?
+* Does the prompt accurately represent the latest current state?
+
+Now output the following:
+
+Current State:
+{{compressed_context}}
+
+Prompt:
